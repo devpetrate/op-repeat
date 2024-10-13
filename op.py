@@ -2,11 +2,11 @@ from web3 import Web3
 import time
 
 # Connect to the Optimism network via Infura RPC
-infura_url = "https://optimism-mainnet.infura.io"
+infura_url = "https://optimism.llamarpc.com"
 web3 = Web3(Web3.HTTPProvider(infura_url))
 
 # Check if the connection is successful
-if not web3.isConnected():
+if not web3.is_connected():
     raise Exception("Failed to connect to Optimism network")
 
 # Constants
@@ -21,15 +21,28 @@ def send_0_eth_transaction(private_key, to_address, repetitions):
     # Loop for the specified number of repetitions
     for i in range(repetitions):
         # Get the current transaction count (nonce)
-        nonce = web3.eth.getTransactionCount(sender_address)
+        nonce = web3.eth.get_transaction_count(sender_address)
 
-        # Create the transaction dictionary
+         # Fetch the current gas price from the network and increase it by 10%
+        gas_price = web3.eth.gas_price * 1.1  # Increase gas price by 10%
+
+        # Estimate the required gas limit for the transaction
+        estimated_gas_limit = web3.eth.estimate_gas({
+            'from': sender_address,
+            'to': to_address,
+            'value': 0
+        })
+
+        # Add some buffer (optional, e.g., 20%) to avoid running out of gas
+        gas_limit = int(estimated_gas_limit * 1.2)
+
+         # Create the transaction dictionary
         tx = {
             'nonce': nonce,
             'to': to_address,
             'value': 0,  # 0 ETH
-            'gas': 21000,  # Basic gas limit for ETH transfers
-            'gasPrice': web3.eth.gas_price,  # Use current network gas price
+            'gas': gas_limit,  # Estimated gas limit with buffer
+            'gasPrice': int(gas_price),  # Apply the increased gas price
             'chainId': CHAIN_ID
         }
 
@@ -37,13 +50,16 @@ def send_0_eth_transaction(private_key, to_address, repetitions):
         signed_tx = web3.eth.account.sign_transaction(tx, private_key)
 
         # Send the transaction
-        tx_hash = web3.eth.sendRawTransaction(signed_tx.rawTransaction)
+        tx_hash = web3.eth.send_raw_transaction(signed_tx.raw_transaction)
 
         # Print the transaction hash
-        print(f"Transaction {i+1}/{repetitions} sent! Tx Hash: {web3.toHex(tx_hash)}")
+        print(f"Transaction {i+1}/{repetitions} sent! Tx Hash: {web3.to_hex(tx_hash)}")
 
         # Wait a few seconds between transactions to avoid nonce issues
         time.sleep(5)
+
+    # Print task completion message
+    print("Task done! Now go say Thank You to Petrate")
 
 # Main script
 if __name__ == "__main__":
